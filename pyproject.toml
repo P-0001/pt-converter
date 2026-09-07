@@ -1,0 +1,55 @@
+[project]
+name = "pt-converter"
+version = "0.1.0"
+description = "Standalone Windows x64 .pt -> .onnx converter built with Ultralytics + PyTorch (CPU) and PyInstaller."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    # Ultralytics - YOLO export to ONNX opset 12. Latest stable line (8.4.x).
+    "ultralytics==8.4.142",
+    # PyTorch CPU-only build for Windows x64. The +cpu local version tag is
+    # only resolvable from the pytorch-cpu index declared in [[tool.uv.index]]
+    # and pinned via [tool.uv.sources] below.
+    "torch==2.13.0+cpu",
+    "torchvision==0.28.0+cpu",
+    # ONNX - used by Ultralytics during export to write/validate the ONNX
+    # graph. The converter calls export(simplify=False), so onnxslim /
+    # onnx-simplifier are NOT required at runtime and are intentionally
+    # omitted to keep the bundled exe smaller.
+    "onnx==1.22.0",
+]
+
+[dependency-groups]
+# Build and test dependencies only. These are NOT shipped inside
+# pt-converter.exe; they are only needed on the build machine to package
+# the converter and run its unit tests. Pinned to exact versions for
+# reproducible builds.
+dev = [
+    "pyinstaller==6.22.2",
+    "pytest==9.1.1",
+    "ruff==0.16.5",
+]
+
+# PyTorch ships CPU-only wheels from its own index. The CPU index does NOT
+# host ultralytics or onnx, so we declare it as `explicit` (only used for
+# packages pinned to it via [tool.uv.sources]) instead of replacing PyPI.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+# Default ruff rule set plus import sorting and simplification.
+select = ["E", "F", "W", "I", "UP", "SIM", "PIE", "RUF", "S", "BLE"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use assert (S101) and short loop variables (E741) liberally.
+"tests/**" = ["S101", "E741"]
+
