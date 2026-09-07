@@ -1,7 +1,7 @@
-# CI for pt-converter: runs unit tests on every push/PR, and builds the
-# pt-converter.exe artifact on master pushes and tags (the PyInstaller
-# bundle pulls in ~500 MB of torch wheels and takes 10+ minutes, so it is
-# gated off PR branches to save CI minutes).
+# CI for pt-converter: runs unit tests on every push/PR, builds the
+# pt-converter.exe artifact on master pushes and tags, and publishes tag
+# builds to GitHub Releases. The PyInstaller bundle pulls in ~500 MB of
+# torch wheels and takes 10+ minutes, so it is gated off PR branches.
 #
 # Requires PowerShell 7+ (pwsh) - preinstalled on windows-latest runners.
 
@@ -10,7 +10,7 @@ name: CI
 on:
   push:
     branches: [master]
-    tags: ["v*"]
+    tags: ["v*", "[0-9]*"]
   pull_request:
     branches: [master]
 
@@ -45,7 +45,9 @@ jobs:
     name: Build exe
     runs-on: windows-latest
     needs: test
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -65,22 +67,36 @@ jobs:
           $size = [math]::Round((Get-Item 'dist\pt-converter.exe').Length / 1MB, 1)
           "sha256=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "size_mb=$size" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          $hash | Out-File -FilePath 'dist\pt-converter.exe.sha256' -NoNewline
+          "$hash *pt-converter.exe" | Out-File -FilePath 'dist\pt-converter.exe.sha256' -NoNewline
           Write-Host "SHA-256: $hash"
           Write-Host "Size: $size MB"
           "| Field | Value |`n|---|---|`n| SHA-256 | \`$hash\` |`n| Size | $size MB |" `
             | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
-      - name: Upload exe
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pt-converter-exe
-          path: dist/pt-converter.exe
+          name: pt-converter-windows-x64
+          path: |
+            dist/pt-converter.exe
+            dist/pt-converter.exe.sha256
           if-no-files-found: error
 
-      - name: Upload SHA-256
-        uses: actions/upload-artifact@v4
-        with:
-          name: pt-converter-sha256
-          path: dist/pt-converter.exe.sha256
-          if-no-files-found: error
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $assets = @(
+            'dist\pt-converter.exe'
+            'dist\pt-converter.exe.sha256'
+          )
+
+          gh release view $tag --json tagName 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @assets --clobber
+          } else {
+            gh release create $tag @assets --verify-tag --generate-notes --title $tag
+          }
