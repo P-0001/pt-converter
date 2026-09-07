@@ -37,22 +37,22 @@ uv run pytest tests -v
 ## CI and releases
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push to `master`,
-every PR, and every `v*` tag:
+every PR, and version tags such as `1.0.1` or `v1.0.1`:
 
 - **Test job** — `uv sync` + lint, format checks, and tests on
   `windows-latest`. Runs on all events.
 - **Build job** — runs `scripts\build.ps1` to produce `pt-converter.exe`
   and its SHA-256 file. Gated to `master` pushes and tags only because the
   PyInstaller bundle takes 10+ minutes and pulls ~500 MB of wheels.
-- **GitHub Release** — a `v*` tag creates a release with generated notes and
+- **GitHub Release** — a version tag creates a release with generated notes and
   attaches `pt-converter.exe` plus `pt-converter.exe.sha256`. Re-running the
   tag workflow replaces the release assets instead of creating duplicates.
 
 To publish a release, create and push a version tag:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag 1.0.1
+git push origin 1.0.1
 ```
 
 ## Output
