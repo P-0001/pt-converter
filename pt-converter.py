@@ -59,6 +59,8 @@ import shutil
 import sys
 from pathlib import Path
 
+VERSION = "1.0.1"
+
 multiprocessing.freeze_support()
 
 _frozen = getattr(sys, "frozen", False)
@@ -133,7 +135,9 @@ class JSONLogStream:
             self.target.write(stripped + "\n")
         else:
             payload = {"level": self.level, "msg": stripped}
-            self.target.write(LOG_PREFIX + json.dumps(payload, separators=(",", ":")) + "\n")
+            self.target.write(
+                LOG_PREFIX + json.dumps(payload, separators=(",", ":")) + "\n"
+            )
         self.target.flush()
 
     def flush(self):
@@ -268,7 +272,9 @@ def run_conversion(model, output, opset, yolo_factory=None):
         except ConverterError:
             raise
         except Exception as exc:
-            raise ConverterError("conversion_failed", f"model load failed: {exc}") from exc
+            raise ConverterError(
+                "conversion_failed", f"model load failed: {exc}"
+            ) from exc
 
         # Check the task type.
         task = getattr(yolo, "task", None)
@@ -343,7 +349,7 @@ def main(argv=None, yolo_factory=None):
 
         emit_log(
             "info",
-            "Starting conversion",
+            f"Starting conversion V:{VERSION}",
             stage="starting",
             model=str(model),
             output=str(output),
@@ -363,13 +369,17 @@ def main(argv=None, yolo_factory=None):
             emit_result({"ok": True, "output": str(final_output), "bytes": int(size)})
             return 0
         except ConverterError as exc:
-            emit_log("error", f"Conversion failed: {exc.code}", stage="failed", code=exc.code)
+            emit_log(
+                "error", f"Conversion failed: {exc.code}", stage="failed", code=exc.code
+            )
             emit_result({"ok": False, "code": exc.code})
             return 1
         except SystemExit:
             raise
         except Exception:  # noqa: BLE001 - unexpected failure still emits a line
-            emit_log("error", "Unexpected failure", stage="failed", code="conversion_failed")
+            emit_log(
+                "error", "Unexpected failure", stage="failed", code="conversion_failed"
+            )
             emit_result({"ok": False, "code": "conversion_failed"})
             return 1
     finally:
