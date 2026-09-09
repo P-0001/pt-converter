@@ -25,8 +25,15 @@ from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 # The default recursion limit (1000) is not enough and causes RecursionError
 # during the Analysis phase. Multiply it before anything else runs.
 import sys as _sys
+import os as _os
 
 _sys.setrecursionlimit(_sys.getrecursionlimit() * 5)
+
+# Application icon embedded into the exe's PE resources. Resolved relative to
+# the spec file (PyInstaller runs with cwd = spec dir). Falls back to no icon
+# if the file is missing so the build still succeeds during local dev.
+_icon_path = _os.path.join(SPECPATH, "assets", "pt-converter.ico")
+_icon = _icon_path if _os.path.isfile(_icon_path) else None
 
 block_cipher = None
 
@@ -112,4 +119,5 @@ exe = EXE(
     target_arch=None,  # Build on a 64-bit Python -> produces x64 exe.
     codesign_identity=None,
     entitlements_file=None,
+    icon=_icon,  # None when assets/pt-converter.ico is absent (dev builds).
 )

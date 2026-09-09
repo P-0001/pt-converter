@@ -59,7 +59,7 @@ import shutil
 import sys
 from pathlib import Path
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 multiprocessing.freeze_support()
 
@@ -334,7 +334,11 @@ def main(argv=None, yolo_factory=None):
     restore = _install_json_streams()
     try:
         parser = build_parser()
-        args = parser.parse_args(argv)
+        try:
+            args = parser.parse_args(argv)
+        except SystemExit:
+            emit_result({"ok": False, "code": "invalid_args"})
+            raise
 
         try:
             model = args.model.resolve()

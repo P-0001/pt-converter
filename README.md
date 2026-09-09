@@ -104,7 +104,7 @@ PT_CONVERTER_LOG {"level":"info","msg":"Starting conversion","stage":"starting"}
 Result line format (success):
 
 ```text
-PT_CONVERTER_RESULT {"ok":true,"output":"C:\\\\path\\\\to\\\\MODEL.onnx","bytes":12345678}
+PT_CONVERTER_RESULT {"ok":true,"output":"C:\\path\\to\\MODEL.onnx","bytes":12345678}
 ```
 
 Result line format (failure):
