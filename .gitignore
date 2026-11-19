@@ -11,3 +11,4 @@ wheels/
 
 # Test caches
 .pytest_cache/
+/.local-test/
