@@ -2,7 +2,7 @@
 #
 # Standalone CLI that wraps Ultralytics' YOLO export to produce ONNX files from
 # PyTorch (.pt) checkpoints. Intended to be packaged with PyInstaller into
-# pt-converter.exe and invoked as a subprocess by the Go backend.
+# pt-converter (pt-converter.exe on Windows) and invoked as a subprocess by the Go backend.
 #
 # SECURITY NOTE
 # -------------
@@ -22,7 +22,7 @@
 #
 # MACHINE-READABLE CONTRACT
 # -------------------------
-# Command:  pt-converter.exe MODEL.pt --output MODEL.onnx --opset 12
+# Command:  pt-converter MODEL.pt --output MODEL.onnx --opset 12   (pt-converter.exe on Windows)
 #
 # ALL output is JSON-parseable. Every line on stdout/stderr is prefixed with
 # one of two constants:
@@ -328,7 +328,8 @@ def build_parser():
 def main(argv=None, yolo_factory=None):
     """Entry point. Returns an exit code (0 on success, 1 on failure).
 
-    Always emits exactly one PT_CONVERTER_RESULT line. All other output
+    Always emits exactly one PT_CONVERTER_RESULT line, except for --help,
+    which prints usage, exits 0 and emits no result line. All other output
     (library logs, stage messages) is emitted as PT_CONVERTER_LOG lines.
     """
     restore = _install_json_streams()
@@ -336,8 +337,12 @@ def main(argv=None, yolo_factory=None):
         parser = build_parser()
         try:
             args = parser.parse_args(argv)
-        except SystemExit:
-            emit_result({"ok": False, "code": "invalid_args"})
+        except SystemExit as exc:
+            # --help exits 0 after printing usage; that is not a failure and
+            # not a conversion, so it emits no result line. Real argument
+            # errors (argparse exits 2) report invalid_args.
+            if exc.code not in (0, None):
+                emit_result({"ok": False, "code": "invalid_args"})
             raise
 
         try:

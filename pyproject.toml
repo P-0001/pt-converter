@@ -1,17 +1,21 @@
 [project]
 name = "pt-converter"
 version = "0.1.0"
-description = "Standalone Windows x64 .pt -> .onnx converter built with Ultralytics + PyTorch (CPU) and PyInstaller."
+description = "Standalone Windows x64, Linux x64 and macOS arm64 .pt -> .onnx converter built with Ultralytics + PyTorch (CPU) and PyInstaller."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     # Ultralytics - YOLO export to ONNX opset 12. Latest stable line (8.4.x).
     "ultralytics==8.4.142",
-    # PyTorch CPU-only build for Windows x64. The +cpu local version tag is
-    # only resolvable from the pytorch-cpu index declared in [[tool.uv.index]]
-    # and pinned via [tool.uv.sources] below.
-    "torch==2.13.0+cpu",
-    "torchvision==0.28.0+cpu",
+    # PyTorch CPU builds for Windows x64, Linux x64 and macOS arm64. On
+    # Windows/Linux the CPU-only wheels carry a +cpu local version tag that is
+    # only resolvable from the pytorch-cpu index (see [tool.uv.sources]). PyTorch
+    # publishes macOS wheels WITHOUT the +cpu tag (they are CPU/MPS builds), so
+    # darwin uses the plain version. Exact pins are kept on every platform.
+    "torch==2.13.0+cpu; sys_platform != 'darwin'",
+    "torch==2.13.0; sys_platform == 'darwin'",
+    "torchvision==0.28.0+cpu; sys_platform != 'darwin'",
+    "torchvision==0.28.0; sys_platform == 'darwin'",
     # ONNX - used by Ultralytics during export to write/validate the ONNX
     # graph. The converter calls export(simplify=False), so onnxslim /
     # onnx-simplifier are NOT required at runtime and are intentionally

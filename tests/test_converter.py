@@ -533,6 +533,28 @@ class MainExitCodeTests(unittest.TestCase):
             conv.main([str(self.model), "--output", str(self.output), "--opset", "13"])
         self.assertNotEqual(cm.exception.code, 0)
 
+    def test_main_invalid_args_emits_invalid_args_result(self):
+        lines = []
+        with (
+            mock.patch.object(conv, "emit_result", lambda payload: lines.append(payload)),
+            mock.patch("sys.stderr"),
+            self.assertRaises(SystemExit) as cm,
+        ):
+            conv.main([str(self.model)])
+        self.assertEqual(cm.exception.code, 2)
+        self.assertEqual(lines, [{"ok": False, "code": "invalid_args"}])
+
+    def test_main_help_exits_zero_without_result(self):
+        lines = []
+        with (
+            mock.patch.object(conv, "emit_result", lambda payload: lines.append(payload)),
+            mock.patch("sys.stdout"),
+            self.assertRaises(SystemExit) as cm,
+        ):
+            conv.main(["--help"])
+        self.assertEqual(cm.exception.code, 0)
+        self.assertEqual(lines, [])
+
     def test_main_unsupported_task(self):
         auto = self.tmp / "best.onnx"
         yolo = FakeYOLO(task="segment", export_path=str(auto))
