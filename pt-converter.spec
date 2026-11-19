@@ -1,8 +1,10 @@
 # -*- mode: python ; coding: utf-8 -*-
-# pt-converter.spec — PyInstaller build spec for pt-converter.exe
+# pt-converter.spec — PyInstaller build spec for pt-converter
 #
-# Produces a single self-contained pt-converter.exe (one-file mode) for
-# Windows x64. The entry point is pt-converter.py, which has an
+# Produces a single self-contained executable (one-file mode) for Windows x64
+# (dist/pt-converter.exe), Linux x64 and macOS arm64 (dist/pt-converter, no
+# extension). Build natively on each platform; PyInstaller cannot
+# cross-compile. The entry point is pt-converter.py, which has an
 # `if __name__ == "__main__":` guard.
 #
 # Expected output size: ~500 MB to >1 GB depending on the pinned Torch
@@ -16,7 +18,7 @@
 # NOTE on hidden imports: the list below covers the modules Ultralytics
 # and PyTorch typically pull in lazily (importlib / dynamic registries).
 # It may need adjustment after the first real build attempt — run the
-# built exe against a fixture .pt model and add any missing modules
+# built executable against a fixture .pt model and add any missing modules
 # PyInstaller reports as ModuleNotFoundError / ImportError.
 
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files
@@ -29,11 +31,15 @@ import os as _os
 
 _sys.setrecursionlimit(_sys.getrecursionlimit() * 5)
 
-# Application icon embedded into the exe's PE resources. Resolved relative to
-# the spec file (PyInstaller runs with cwd = spec dir). Falls back to no icon
-# if the file is missing so the build still succeeds during local dev.
+# Application icon embedded into the exe's PE resources (Windows only).
+# Resolved relative to the spec file (PyInstaller runs with cwd = spec dir).
+# Falls back to no icon if the file is missing so the build still succeeds
+# during local dev. On Linux and macOS the .ico is deliberately NOT passed:
+# a one-file console binary has no icon resource there, and a .ico on macOS
+# can trigger a Pillow icon-conversion step (.ico -> .icns) that may fail the
+# build. Windows behavior is unchanged.
 _icon_path = _os.path.join(SPECPATH, "assets", "pt-converter.ico")
-_icon = _icon_path if _os.path.isfile(_icon_path) else None
+_icon = _icon_path if _sys.platform == "win32" and _os.path.isfile(_icon_path) else None
 
 block_cipher = None
 
@@ -52,8 +58,9 @@ hiddenimports = [
     "torch",
     "torchvision",
     # Multiprocessing — torch uses it internally; PyInstaller may miss it.
+    # (freeze_support is a function in this module, not a submodule, so it
+    # is not listed separately.)
     "multiprocessing",
-    "multiprocessing.freeze_support",
     # Ultralytics top-level packages (collect_submodules fills the rest)
     "ultralytics",
     "ultralytics.nn",
@@ -116,8 +123,8 @@ exe = EXE(
     console=True,  # CLI tool: keep a console window for stdout/stderr.
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch=None,  # Build on a 64-bit Python -> produces x64 exe.
+    target_arch=None,  # Native arch of the build Python (x64 Windows/Linux, arm64 macOS).
     codesign_identity=None,
     entitlements_file=None,
-    icon=_icon,  # None when assets/pt-converter.ico is absent (dev builds).
+    icon=_icon,  # None off Windows or when assets/pt-converter.ico is absent.
 )
