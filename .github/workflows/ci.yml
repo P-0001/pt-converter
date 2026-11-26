@@ -6,11 +6,18 @@
 #
 # Release assets:
 #   pt-converter.exe          (+ .sha256)  Windows x64
-#   pt-converter-linux-x64    (+ .sha256)  Linux x64
+#   pt-converter-linux-x64    (+ .sha256)  Linux x64 (manylinux_2_28 container, glibc 2.28+)
 #   pt-converter-macos-arm64  (+ .sha256)  macOS arm64 (macos-latest runner)
 #
 # Windows builds use PowerShell 7+ (pwsh), preinstalled on windows-latest.
 # Linux/macOS builds use scripts/build.sh (bash).
+#
+# The Linux binary is built inside the manylinux_2_28 container, not on the
+# ubuntu-latest host. PyInstaller bundles shared libraries from the build
+# machine (libglib-2.0 and friends), so a binary built on a new Ubuntu needs
+# that Ubuntu's glibc at runtime and fails on older distros with
+# "version `GLIBC_2.xx' not found". Building on glibc 2.28 runs on any distro
+# with glibc 2.28 or later.
 
 name: CI
 
@@ -57,6 +64,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: test
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    # Empty for Windows and macOS, so those jobs run on the runner host.
+    container: ${{ matrix.container }}
+    env:
+      # manylinux ships static CPython builds without libpython, which
+      # PyInstaller needs. uv-managed Python includes it. Windows and macOS
+      # use "managed", uv's default, so their builds are unchanged.
+      UV_PYTHON_PREFERENCE: ${{ matrix.uv_python_preference }}
     permissions:
       contents: read
     strategy:
@@ -64,14 +78,20 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+            container: ""
+            uv_python_preference: managed
             binary: dist/pt-converter.exe
             asset: pt-converter.exe
             artifact: pt-converter-windows-x64
           - os: ubuntu-latest
+            container: quay.io/pypa/manylinux_2_28_x86_64
+            uv_python_preference: only-managed
             binary: dist/pt-converter
             asset: pt-converter-linux-x64
             artifact: pt-converter-linux-x64
           - os: macos-latest
+            container: ""
+            uv_python_preference: managed
             binary: dist/pt-converter
             asset: pt-converter-macos-arm64
             artifact: pt-converter-macos-arm64

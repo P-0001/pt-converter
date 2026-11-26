@@ -13,7 +13,7 @@ Convert an Ultralytics YOLO detection or pose checkpoint (`.pt`) to ONNX on Wind
 Download the executable for your platform from [GitHub Releases](https://github.com/P-0001/pt-converter/releases). Each release build includes a SHA-256 checksum file (`.sha256`) for every executable:
 
 - Windows x64: `pt-converter.exe`
-- Linux x64: `pt-converter-linux-x64`
+- Linux x64: `pt-converter-linux-x64`. The Linux build requires glibc 2.28 or later (for example Ubuntu 20.04, Debian 10, RHEL 8 or newer) and the system `libGL` and `libglib-2.0` libraries, which desktop installs already have. On a minimal system, install them with `apt install libgl1 libglib2.0-0` or `dnf install mesa-libGL glib2`.
 - macOS arm64 (Apple Silicon): `pt-converter-macos-arm64`. The macOS build requires macOS 14 or later.
 
 On Linux and macOS, verify the download with the checksum file in the same directory:
